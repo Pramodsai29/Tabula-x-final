@@ -9,10 +9,16 @@ const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
+// Get MongoDB connection string from environment variables
+const MONGO_CONNECTION_STRING = process.env.MONGODB_URI || process.env.MONGO_URI;
+
 // Log the MongoDB connection string (without exposing the full password)
-const mongoUriDebug = process.env.MONGODB_URI || process.env.MONGO_URI || '';
-const redactedUri = mongoUriDebug.replace(/:([^:@]+)@/, ':****@');
-console.log('MongoDB URI (redacted):', redactedUri ? redactedUri : 'Not found');
+if (MONGO_CONNECTION_STRING) {
+  const redactedUri = MONGO_CONNECTION_STRING.replace(/:([^:@]+)@/, ':****@');
+  console.log('MongoDB URI (redacted):', redactedUri);
+} else {
+  console.log('MongoDB URI: Not configured');
+}
 
 // Initialize express app
 const app = express();
@@ -67,8 +73,15 @@ if (process.env.NODE_ENV === 'production') {
 app.use(notFound);
 app.use(errorHandler);
 
-// Connect to MongoDB - Use fixed connection string if environment variable approach fails
-const MONGO_CONNECTION_STRING = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb+srv://saipramodh92:Sai5002@cluster0.yovl7ih.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+// Connect to MongoDB - Only use environment variables for security
+
+// Check if MongoDB connection string is available
+if (!MONGO_CONNECTION_STRING) {
+  console.error('ERROR: MongoDB connection string not found in environment variables!');
+  console.error('Please set MONGODB_URI or MONGO_URI in your .env file');
+  console.error('Example: MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<dbname>?retryWrites=true&w=majority');
+  process.exit(1);
+}
 
 console.log('Attempting to connect to MongoDB...');
 
